@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 
 export default function UserLogin() {
   const [email, setEmail] = useState('')
@@ -9,10 +9,27 @@ export default function UserLogin() {
   const [error, setError] = useState<string | null>(null)
   const navigate = useNavigate()
 
+  const validateForm = () => {
+    if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      setError('Please enter a valid email address')
+      return false
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long')
+      return false
+    }
+    return true
+  }
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
+
+    if (!validateForm()) {
+      setLoading(false)
+      return
+    }
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -20,7 +37,12 @@ export default function UserLogin() {
         password,
       })
       
-      if (error) throw error
+      if (error) {
+        if (error.message === 'Invalid login credentials') {
+          throw new Error('Invalid email or password. Please check your credentials or create a new account.')
+        }
+        throw error
+      }
       navigate('/dashboard')
     } catch (error) {
       setError(error instanceof Error ? error.message : 'An error occurred')
@@ -86,6 +108,15 @@ export default function UserLogin() {
             </button>
           </div>
         </form>
+        
+        <div className="mt-4 text-center">
+          <p className="text-sm text-gray-600">
+            Don't have an account?{' '}
+            <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
+              Sign up
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   )
